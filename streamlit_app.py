@@ -4,7 +4,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 
 # --- SETUP ---
-st.set_page_config(page_title="Gutsweg 3", layout="wide")
+st.set_page_config(page_title="G3 Energie Dashboard", layout="wide")
 
 # CSS für bessere mobile Darstellung (Padding und Schrift)
 st.markdown("""
