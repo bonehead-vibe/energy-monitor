@@ -57,7 +57,7 @@ def load_data():
 
 try:
     df = load_data()
-    st.title("🏡 Gutsweg 3")
+    st.title("🏡 G3 Energie Dashboard")
 
     # --- SIDEBAR ---
     all_years = sorted(df['Jahr'].unique(), reverse=True)
