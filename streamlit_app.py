@@ -66,7 +66,17 @@ try:
     compare_years = st.sidebar.multiselect("Vergleich:", options=all_years, default=all_years[:2])
 
     df_plot = df[df['Jahr'].isin(compare_years)].sort_values(['Jahr', 'Monat_Kurz'])
-    avg_df = df.groupby('Monat_Kurz', observed=True).mean(numeric_only=True).reset_index()
+    # Mittelwert-Berechnung: Ignoriere 0.0 und None für einen realistischen Schnitt
+    def mean_gt_zero(series):
+        valid_values = series[series > 0]
+        return valid_values.mean() if not valid_values.empty else 0.0
+
+    avg_df = df.groupby('Monat_Kurz', observed=True).agg({
+        'Strombezug kWh': mean_gt_zero,
+        'Fernwärmebezug (kWh)': mean_gt_zero,
+        'Wasser m³': mean_gt_zero,
+        'Wasserkosten (€)': mean_gt_zero
+    }).reset_index()
     yearly_all = df.groupby('Jahr').sum(numeric_only=True).reset_index().sort_values('Jahr')
 
     # --- KPIs (Mobil optimiert: 2 Spalten Layout) ---
