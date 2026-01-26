@@ -85,16 +85,17 @@ try:
 
     df_plot = df[df['Jahr'].isin(compare_years)].sort_values(['Jahr', 'Monat_Kurz'])
     
-    # Mittelwert-Logik (nur Werte > 0)
-    def mean_gt_zero(series):
-        valid = series[series > 0]
+   # Mittelwert-Logik: Ignoriere 0 und extreme Jahres-Einzelwerte für den Monatsschnitt
+    def mean_plausible(series, limit):
+        # Nur Werte > 0 und UNTER dem Limit (z.B. 2500 kWh) fließen in die Linie ein
+        valid = series[(series > 0) & (series < limit)]
         return valid.mean() if not valid.empty else 0.0
 
     avg_df = df.groupby('Monat_Kurz', observed=True).agg({
-        'Strombezug kWh': mean_gt_zero,
-        'Fernwärmebezug (kWh)': mean_gt_zero,
-        'Wasser m³': mean_gt_zero,
-        'Wasserkosten (€)': mean_gt_zero
+        'Strombezug kWh': lambda x: mean_plausible(x, 1000), 
+        'Fernwärmebezug (kWh)': lambda x: mean_plausible(x, 2500), 
+        'Wasser m³': lambda x: mean_plausible(x, 50),
+        'Wasserkosten (€)': lambda x: mean_plausible(x, 200)
     }).reset_index()
 
     yearly_all = df.groupby('Jahr').sum(numeric_only=True).reset_index().sort_values('Jahr')
