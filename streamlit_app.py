@@ -117,11 +117,11 @@ try:
         fig.update_layout(legend=dict(orientation="h", y=-0.5), margin=dict(l=10, r=10, t=40, b=10))
         return fig
 
-    # --- TABS ---
+   # --- TABS ---
     tab1, tab2, tab3 = st.tabs(["🔥 Wärme", "🔌 Strom", "💧 Wasser"])
 
     with tab1:
-        # Verbrauch
+        # 1. Monatlicher Verbrauch (Linien)
         fig_l1 = go.Figure()
         fig_l1.add_trace(go.Scatter(x=avg_df['Monat_Kurz'], y=avg_df['Fernwärmebezug (kWh)'], name="Schnitt", line=dict(dash='dot')))
         for yr in sorted(compare_years):
@@ -129,16 +129,20 @@ try:
             fig_l1.add_trace(go.Scatter(x=yr_data['Monat_Kurz'], y=yr_data['Fernwärmebezug (kWh)'], name=str(yr)))
         st.plotly_chart(apply_style(fig_l1), width='stretch')
         
+        # 2. Jahres-Trend (Balken kWh)
         st.plotly_chart(px.bar(yearly_all, x='Jahr', y='Fernwärmebezug (kWh)', title="Trend Jahre (kWh)", text_auto='.0f'), width='stretch')
         
-        # NEU: Kosten
+        # 3. Jahres-Kosten (Balken €)
         st.plotly_chart(px.bar(yearly_all, x='Jahr', y='Fernwärmekosten (€)', title="Trend Jahre (€)", text_auto='.0f', color_discrete_sequence=['#EF553B']), width='stretch')
         
+        # 4. Preis pro Einheit (Linie €/kWh) - Achse startet bei 0
         yearly_all['€/kWh_FW'] = yearly_all['Fernwärmekosten (€)'] / yearly_all['Fernwärmebezug (kWh)']
-        st.plotly_chart(px.line(yearly_all, x='Jahr', y='€/kWh_FW', title="€ je kWh (jährlich)", markers=True, color_discrete_sequence=['#EF553B']), width='stretch')
+        fig_fw_ratio = px.line(yearly_all, x='Jahr', y='€/kWh_FW', title="€ je kWh (jährlich)", markers=True, color_discrete_sequence=['#EF553B'])
+        fig_fw_ratio.update_yaxes(range=[0, None]) 
+        st.plotly_chart(apply_style(fig_fw_ratio), width='stretch')
 
     with tab2:
-        # Verbrauch
+        # 1. Monatlicher Verbrauch (Linien)
         fig_l2 = go.Figure()
         fig_l2.add_trace(go.Scatter(x=avg_df['Monat_Kurz'], y=avg_df['Strombezug kWh'], name="Schnitt", line=dict(dash='dot')))
         for yr in sorted(compare_years):
@@ -146,13 +150,17 @@ try:
             fig_l2.add_trace(go.Scatter(x=yr_data['Monat_Kurz'], y=yr_data['Strombezug kWh'], name=str(yr)))
         st.plotly_chart(apply_style(fig_l2), width='stretch')
 
+        # 2. Jahres-Trend (Balken kWh)
         st.plotly_chart(px.bar(yearly_all, x='Jahr', y='Strombezug kWh', title="Trend Strom Jahre (kWh)", text_auto='.0f'), width='stretch')
         
-        # NEU: Kosten
+        # 3. Jahres-Kosten (Balken €)
         st.plotly_chart(px.bar(yearly_all, x='Jahr', y='Stromkosten (€)', title="Trend Jahre (€)", text_auto='.0f', color_discrete_sequence=['#636EFA']), width='stretch')
         
+        # 4. Preis pro Einheit (Linie €/kWh) - Achse startet bei 0
         yearly_all['€/kWh_ST'] = yearly_all['Stromkosten (€)'] / yearly_all['Strombezug kWh']
-        st.plotly_chart(px.line(yearly_all, x='Jahr', y='€/kWh_ST', title="€ je kWh (jährlich)", markers=True, color_discrete_sequence=['#636EFA']), width='stretch')
+        fig_st_ratio = px.line(yearly_all, x='Jahr', y='€/kWh_ST', title="€ je kWh (jährlich)", markers=True, color_discrete_sequence=['#636EFA'])
+        fig_st_ratio.update_yaxes(range=[0, None])
+        st.plotly_chart(apply_style(fig_st_ratio), width='stretch')
 
     with tab3:
         st.plotly_chart(px.bar(yearly_all, x='Jahr', y='Wasser m³', title="Wasser m³", text_auto='.1f'), width='stretch')
