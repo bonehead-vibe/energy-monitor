@@ -157,10 +157,19 @@ try:
         if not df_pv.empty:
             col_a, col_b = st.columns(2)
             with col_a:
-                # Tortendiagramm
+                # Tortendiagramm mit einheitlichen Farben
                 pv_totals = df_pv[['Eigenverbrauch', 'Einspeisung']].sum()
-                fig_pie = px.pie(values=pv_totals, names=pv_totals.index, title="Nutzung PV-Strom",
-                                 color_discrete_sequence=['#FFA15A', '#636EFA'])
+                fig_pie = px.pie(
+                    values=pv_totals, 
+                    names=pv_totals.index, 
+                    title="Nutzung PV-Strom",
+                    # Hier weisen wir die Farben explizit zu:
+                    color=pv_totals.index,
+                    color_discrete_map={
+                        'Eigenverbrauch': '#00CC96',  # Das gleiche Grün wie im Balken
+                        'Einspeisung': '#ABB2B9'      # Das gleiche Grau wie im Balken
+                    }
+                )
                 st.plotly_chart(fig_pie, use_container_width=True)
             with col_b:
                 # Gestapelte Balken: Netzbezug (unten), PV-Eigenverbrauch (mitte), Einspeisung (oben)
