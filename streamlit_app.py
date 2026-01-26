@@ -49,6 +49,9 @@ def load_data():
     ]
     for col in numeric_cols:
         if col in raw_df.columns: raw_df[col] = raw_df[col].apply(clean_val)
+            # Negative Ausreißer (z.B. durch Formelfehler im Sheet) ignorieren
+    raw_df.loc[raw_df['Strombezug kWh'] < 0, 'Strombezug kWh'] = 0
+    raw_df.loc[raw_df['Fernwärmebezug (kWh)'] < 0, 'Fernwärmebezug (kWh)'] = 0
     
     raw_df['Jahr'] = pd.to_numeric(raw_df['Jahr'], errors='coerce').fillna(0).astype(int)
     raw_df['Monat_Kurz'] = raw_df['Monat'].str.strip().map(MONTH_MAP)
