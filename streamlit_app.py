@@ -62,7 +62,7 @@ try:
     # --- SIDEBAR ---
     all_years = sorted(df['Jahr'].unique(), reverse=True)
     st.sidebar.header("Optionen")
-    selected_year_pv = st.sidebar.selectbox("Fokus-Jahr:", options=all_years, index=0)
+    selected_year_pv = st.sidebar.selectbox("Fokus-Jahr PV Eigenverbrauch:", options=all_years, index=0)
     compare_years = st.sidebar.multiselect("Vergleich:", options=all_years, default=all_years[:2])
 
     df_plot = df[df['Jahr'].isin(compare_years)].sort_values(['Jahr', 'Monat_Kurz'])
