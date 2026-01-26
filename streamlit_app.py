@@ -48,19 +48,11 @@ def load_data():
         'Stromkosten (€)', 'Fernwärmekosten (€)'
     ]
     for col in numeric_cols:
-        if col in raw_df.columns: 
-            raw_df[col] = raw_df[col].apply(clean_val)
-            # NEU: Nur für Strom und Wärme negative Werte durch 'None' ersetzen
-            if col in ['Strombezug kWh', 'Fernwärmebezug (kWh)']:
-                raw_df.loc[raw_df[col] < 0, col] = None
+        if col in raw_df.columns: raw_df[col] = raw_df[col].apply(clean_val)
     
-    # Jahr und Monat säubern (entfernt auch versteckte Leerzeichen)
-    raw_df['Jahr_Clean'] = pd.to_numeric(raw_df['Jahr'].astype(str).str.strip(), errors='coerce').fillna(0).astype(int)
-    raw_df['Monat_Kurz'] = raw_df['Monat'].astype(str).str.strip().map(MONTH_MAP)
-    
-    # Filtern: Jahre ab 2011 und nur Zeilen mit gültigem Monat
-    df = raw_df[(raw_df['Jahr_Clean'] > 2010) & (raw_df['Monat_Kurz'].notna())].copy()
-    df['Jahr'] = df['Jahr_Clean'] # Name wieder zurücksetzen für den Rest des Codes
+    raw_df['Jahr'] = pd.to_numeric(raw_df['Jahr'], errors='coerce').fillna(0).astype(int)
+    raw_df['Monat_Kurz'] = raw_df['Monat'].str.strip().map(MONTH_MAP)
+    df = raw_df[(raw_df['Jahr'] > 2010) & (raw_df['Monat_Kurz'].notna())].copy()
     df['Monat_Kurz'] = pd.Categorical(df['Monat_Kurz'], categories=MONTH_ORDER, ordered=True)
     return df
 
