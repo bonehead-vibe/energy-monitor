@@ -48,11 +48,28 @@ def load_data():
         'Stromkosten (€)', 'Fernwärmekosten (€)'
     ]
     for col in numeric_cols:
-        if col in raw_df.columns: raw_df[col] = raw_df[col].apply(clean_val)
+        if col in raw_df.columns: 
+            raw_df[col] = raw_df[col].apply(clean_val)
     
-    raw_df['Jahr'] = pd.to_numeric(raw_df['Jahr'], errors='coerce').fillna(0).astype(int)
-    raw_df['Monat_Kurz'] = raw_df['Monat'].str.strip().map(MONTH_MAP)
-    df = raw_df[(raw_df['Jahr'] > 2010) & (raw_df['Monat_Kurz'].notna())].copy()
+    # SPEZIELLE REINIGUNG FÜR STROM & WÄRME
+    # 1. Negative Werte löschen
+    # 2. Extreme Ausreißer beim Strom (z.B. > 1500 kWh/Monat) löschen
+    if 'Strombezug kWh' in raw_df.columns:
+        raw_df.loc[(raw_df['Strombezug kWh'] < 0) | (raw_df['Strombezug kWh'] > 1500), 'Strombezug kWh'] = None
+    
+    if 'Fernwärmebezug (kWh)' in raw_df.columns:
+        raw_df.loc[raw_df['Fernwärmebezug (kWh)'] < 0, 'Fernwärmebezug (kWh)'] = None
+
+    # Jahr und Monat säubern
+    raw_df['Jahr_Clean'] = pd.to_numeric(raw_df['Jahr'].astype(str).str.strip(), errors='coerce').fillna(0).astype(int)
+    raw_df['Monat_Kurz'] = raw_df['Monat'].astype(str).str.strip().map(MONTH_MAP)
+    
+    # Nur Jahre ab 2011 und bis zum aktuellen Jahr (verhindert Geisterjahre in der Zukunft)
+    import datetime
+    current_year = datetime.datetime.now().year
+    df = raw_df[(raw_df['Jahr_Clean'] > 2010) & (raw_df['Jahr_Clean'] <= current_year) & (raw_df['Monat_Kurz'].notna())].copy()
+    
+    df['Jahr'] = df['Jahr_Clean']
     df['Monat_Kurz'] = pd.Categorical(df['Monat_Kurz'], categories=MONTH_ORDER, ordered=True)
     return df
 
