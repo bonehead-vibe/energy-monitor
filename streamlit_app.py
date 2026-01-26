@@ -92,7 +92,7 @@ try:
         with k2:
             st_val = y_sum['Strombezug kWh'].values[0]
             st_delta = f"{((st_val - prev_sum['Strombezug kWh'].values[0]) / prev_sum['Strombezug kWh'].values[0] * 100):+.1f}%" if not prev_sum.empty else None
-            st.metric(f"Strom {year}", f"{st_val:,.1f} kWh".replace(",", "."), delta=st_delta, delta_color="inverse")
+            st.metric("Strombezug", f"{int(st_val):,}".replace(",", ".") + " kWh", delta=st_delta, delta_color="inverse")
 
     # --- TABS ---
     tab1, tab2, tab3 = st.tabs(["🔥 Wärme", "🔌 Strom", "💧 Wasser"])
