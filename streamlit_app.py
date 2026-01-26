@@ -150,13 +150,32 @@ try:
             fig_l2.add_trace(go.Scatter(x=yr_data['Monat_Kurz'], y=yr_data['Strombezug kWh'], name=str(yr)))
         st.plotly_chart(apply_style(fig_l2), width='stretch')
 
-        # 2. Jahres-Trend (Balken kWh)
+        # 2. PV-Analyse (Torte & Stapelbalken für das Fokus-Jahr)
+        st.markdown(f"### PV-Bilanz Fokus-Jahr {selected_year_pv}")
+        df_pv = df[df['Jahr'] == selected_year_pv].sort_values('Monat_Kurz')
+        
+        if not df_pv.empty:
+            col_a, col_b = st.columns(2)
+            with col_a:
+                # Tortendiagramm
+                pv_totals = df_pv[['Eigenverbrauch', 'Einspeisung']].sum()
+                fig_pie = px.pie(values=pv_totals, names=pv_totals.index, title="Nutzung PV-Strom",
+                                 color_discrete_sequence=['#FFA15A', '#636EFA'])
+                st.plotly_chart(fig_pie, use_container_width=True)
+            with col_b:
+                # Gestapelte Balken
+                fig_stack = go.Figure()
+                fig_stack.add_trace(go.Bar(x=df_pv['Monat_Kurz'], y=df_pv['Eigenverbrauch'], name='PV Eigenverbrauch', marker_color='#FFA15A'))
+                fig_stack.add_trace(go.Bar(x=df_pv['Monat_Kurz'], y=df_pv['Strombezug kWh'], name='Netzbezug', marker_color='#EF553B'))
+                fig_stack.update_layout(barmode='stack', title="Strommix (Monatlich)")
+                st.plotly_chart(fig_stack, use_container_width=True)
+
+        # 3. Jahres-Trends
         st.plotly_chart(px.bar(yearly_all, x='Jahr', y='Strombezug kWh', title="Trend Strom Jahre (kWh)", text_auto='.0f'), width='stretch')
         
-        # 3. Jahres-Kosten (Balken €)
         st.plotly_chart(px.bar(yearly_all, x='Jahr', y='Stromkosten (€)', title="Trend Jahre (€)", text_auto='.0f', color_discrete_sequence=['#636EFA']), width='stretch')
         
-        # 4. Preis pro Einheit (Linie €/kWh) - Achse startet bei 0
+        # 4. Preis pro Einheit - Achse startet bei 0
         yearly_all['€/kWh_ST'] = yearly_all['Stromkosten (€)'] / yearly_all['Strombezug kWh']
         fig_st_ratio = px.line(yearly_all, x='Jahr', y='€/kWh_ST', title="€ je kWh (jährlich)", markers=True, color_discrete_sequence=['#636EFA'])
         fig_st_ratio.update_yaxes(range=[0, None])
