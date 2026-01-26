@@ -163,11 +163,22 @@ try:
                                  color_discrete_sequence=['#FFA15A', '#636EFA'])
                 st.plotly_chart(fig_pie, use_container_width=True)
             with col_b:
-                # Gestapelte Balken
+                # Gestapelte Balken: Netzbezug (unten), PV-Eigenverbrauch (mitte), Einspeisung (oben)
                 fig_stack = go.Figure()
-                fig_stack.add_trace(go.Bar(x=df_pv['Monat_Kurz'], y=df_pv['Eigenverbrauch'], name='PV Eigenverbrauch', marker_color='#FFA15A'))
-                fig_stack.add_trace(go.Bar(x=df_pv['Monat_Kurz'], y=df_pv['Strombezug kWh'], name='Netzbezug', marker_color='#EF553B'))
-                fig_stack.update_layout(barmode='stack', title="Strommix (Monatlich)")
+                
+                # 1. Netzbezug (Blau) - Ganz unten
+                fig_stack.add_trace(go.Bar(x=df_pv['Monat_Kurz'], y=df_pv['Strombezug kWh'], 
+                                         name='Netzbezug', marker_color='#636EFA'))
+                
+                # 2. PV Eigenverbrauch (Grün) - In der Mitte
+                fig_stack.add_trace(go.Bar(x=df_pv['Monat_Kurz'], y=df_pv['Eigenverbrauch'], 
+                                         name='PV Eigenverbrauch', marker_color='#00CC96'))
+                
+                # 3. Einspeisung (Grau) - Ganz oben
+                fig_stack.add_trace(go.Bar(x=df_pv['Monat_Kurz'], y=df_pv['Einspeisung'], 
+                                         name='Netzeinspeisung', marker_color='#ABB2B9'))
+                
+                fig_stack.update_layout(barmode='stack', title=f"Strom-Mix & Bilanz {selected_year_pv}")
                 st.plotly_chart(fig_stack, use_container_width=True)
 
         # 3. Jahres-Trends
