@@ -14,12 +14,12 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# Die ID wird jetzt sicher aus den Secrets geladen
+# Die ID wird NUR noch sicher aus den Secrets geladen
 if "SHEET_ID" in st.secrets:
     SHEET_ID = st.secrets["SHEET_ID"]
 else:
-    # Fallback für lokale Tests oder falls Secret fehlt
-    SHEET_ID = "1kFfiGuXtDjn8cGya_J6pV21oWD9aNreI7LzWG6RN2so"
+    st.error("Fehler: SHEET_ID nicht in den Streamlit Secrets gefunden!")
+    st.stop() # Stoppt die App hier, damit kein falscher Link geladen wird
 
 SHEET_URL = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=csv"
 
