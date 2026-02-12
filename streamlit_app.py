@@ -14,7 +14,13 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-SHEET_ID = "1kFfiGuXtDjn8cGya_J6pV21oWD9aNreI7LzWG6RN2so"
+# Die ID wird jetzt sicher aus den Secrets geladen
+if "SHEET_ID" in st.secrets:
+    SHEET_ID = st.secrets["SHEET_ID"]
+else:
+    # Fallback für lokale Tests oder falls Secret fehlt
+    SHEET_ID = "1kFfiGuXtDjn8cGya_J6pV21oWD9aNreI7LzWG6RN2so"
+
 SHEET_URL = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=csv"
 
 MONTH_MAP = {
