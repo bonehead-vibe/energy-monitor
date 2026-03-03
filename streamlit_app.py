@@ -1,4 +1,29 @@
 import streamlit as st
+
+# --- PASSWORT ABFRAGE ---
+def check_password():
+    def password_entered():
+        if st.session_state["password"] == st.secrets["APP_PASSWORD"]:
+            st.session_state["password_correct"] = True
+            del st.session_state["password"]  # Passwort nicht im Speicher lassen
+        else:
+            st.session_state["password_correct"] = False
+
+    if "password_correct" not in st.session_state:
+        st.text_input("Bitte Passwort eingeben", type="password", on_change=password_entered, key="password")
+        return False
+    elif not st.session_state["password_correct"]:
+        st.text_input("Bitte Passwort eingeben", type="password", on_change=password_entered, key="password")
+        st.error("😕 Passwort falsch")
+        return False
+    else:
+        return True
+
+if not check_password():
+    st.stop()  # Hier bricht die App ab, wenn das Passwort nicht stimmt
+# --- ENDE PASSWORT ABFRAGE ---
+
+# Hier geht dein normaler Code weiter (z.B. SHEET_ID laden...)
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
