@@ -354,7 +354,7 @@ Nutze ausschließlich die folgenden aggregierten Daten.
 Wenn die Daten nicht ausreichen, sage das klar.
 Erfinde keine Werte.
 Aggregierte Daten:
-{json.dumps(payload, ensure_ascii=False, indent=2)}
+{json.dumps(payload, ensure_ascii=False, indent=2, default=str)}
 Aufgabe:
 {task}
 """,
