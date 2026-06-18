@@ -623,4 +623,9 @@ try:
                 result = run_ai_analysis(payload, user_question=question.strip())
                 st.markdown(result)
 except Exception as e:
-    st.error(f"Datenfehler: {e}")
+    if "insufficient_quota" in str(e):
+        st.error(
+            "OpenAI API-Guthaben aufgebraucht oder Billing nicht eingerichtet."
+        )
+    else:
+        st.error(f"Datenfehler: {e}")
