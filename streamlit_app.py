@@ -221,43 +221,171 @@ def pct_change(current: float, previous: float):
     if pd.isna(current) or pd.isna(previous) or previous == 0:
         return None
     return round((current - previous) / previous * 100, 1)
+
+
+def available_months_for_metric(df: pd.DataFrame, year: int, metric: str) -> list:
+    year_df = df[df["Jahr"] == year].copy()
+
+    if year_df.empty or metric not in year_df.columns:
+        return []
+
+    available = year_df[
+        year_df[metric].notna()
+        & (year_df[metric] > 0)
+    ]["Monat_Kurz"].astype(str).tolist()
+
+    return [m for m in MONTH_ORDER if m in available]
+
+
+def comparable_ytd_summary(
+    df: pd.DataFrame,
+    current_year: int,
+    previous_year: int,
+    metric: str,
+    label: str,
+    cost_metric: str | None = None,
+) -> dict:
+    current_months = available_months_for_metric(df, current_year, metric)
+    previous_months = available_months_for_metric(df, previous_year, metric)
+
+    comparable_months = [m for m in current_months if m in previous_months]
+
+    current_df = df[
+        (df["Jahr"] == current_year)
+        & (df["Monat_Kurz"].astype(str).isin(comparable_months))
+    ]
+
+    previous_df = df[
+        (df["Jahr"] == previous_year)
+        & (df["Monat_Kurz"].astype(str).isin(comparable_months))
+    ]
+
+    current_value = float(current_df[metric].sum()) if comparable_months else None
+    previous_value = float(previous_df[metric].sum()) if comparable_months else None
+
+    result = {
+        "bereich": label,
+        "kennzahl": metric,
+        "vergleichslogik": "Nur Monate mit vorhandenen Werten in aktuellem Jahr und Vorjahr werden verglichen.",
+        "aktuelles_jahr": current_year,
+        "vergleichsjahr": previous_year,
+        "vergleichbare_monate": comparable_months,
+        "anzahl_monate": len(comparable_months),
+        "aktueller_wert": round(current_value, 2) if current_value is not None else None,
+        "vorjahreswert_gleicher_zeitraum": round(previous_value, 2) if previous_value is not None else None,
+        "veraenderung_prozent": pct_change(current_value, previous_value)
+        if current_value is not None and previous_value is not None
+        else None,
+    }
+
+    if cost_metric and cost_metric in df.columns:
+        current_cost = float(current_df[cost_metric].sum()) if comparable_months else None
+        previous_cost = float(previous_df[cost_metric].sum()) if comparable_months else None
+
+        result["kosten_aktuelles_jahr"] = (
+            round(current_cost, 2) if current_cost is not None else None
+        )
+        result["kosten_vorjahr_gleicher_zeitraum"] = (
+            round(previous_cost, 2) if previous_cost is not None else None
+        )
+        result["kostenveraenderung_prozent"] = (
+            pct_change(current_cost, previous_cost)
+            if current_cost is not None and previous_cost is not None
+            else None
+        )
+
+    return result
+    if pd.isna(current) or pd.isna(previous) or previous == 0:
+        return None
+    return round((current - previous) / previous * 100, 1)
 def build_ai_payload(df: pd.DataFrame, yearly_all: pd.DataFrame, selected_year: int) -> dict:
     latest_year = int(yearly_all["Jahr"].max())
     previous_year = latest_year - 1
+
     latest = yearly_all[yearly_all["Jahr"] == latest_year].iloc[0]
-    previous_rows = yearly_all[yearly_all["Jahr"] == previous_year]
-    previous = previous_rows.iloc[0] if not previous_rows.empty else None
-    yearly_records = yearly_all[
-        [
-            "Jahr",
-            "Strombezug kWh",
-            "Stromkosten (€)",
-            "€/kWh_ST",
-            "Fernwärmebezug (kWh)",
-            "Fernwärmekosten (€)",
-            "€/kWh_FW",
-            "Wasser m³",
-            "Wasserkosten (€)",
-            "€/m³_W",
-            "PV Produktion (kWh)",
-            "Eigenverbrauch",
-            "Einspeisung",
-        ]
-    ].tail(6)
-    monthly = df[df["Jahr"] == selected_year].copy()
+
+    vergleich_strom = comparable_ytd_summary(
+        df,
+        latest_year,
+        previous_year,
+        "Strombezug kWh",
+        "Strom",
+        "Stromkosten (€)",
+    )
+
+    vergleich_fernwaerme = comparable_ytd_summary(
+        df,
+        latest_year,
+        previous_year,
+        "Fernwärmebezug (kWh)",
+        "Fernwärme",
+        "Fernwärmekosten (€)",
+    )
+
+    vergleich_pv_produktion = comparable_ytd_summary(
+        df,
+        latest_year,
+        previous_year,
+        "PV Produktion (kWh)",
+        "PV-Produktion",
+    )
+
+    vergleich_pv_eigenverbrauch = comparable_ytd_summary(
+        df,
+        latest_year,
+        previous_year,
+        "Eigenverbrauch",
+        "PV-Eigenverbrauch",
+    )
+
+    # Wasser wird nur sinnvoll verglichen, wenn im aktuellen Jahr Werte vorhanden sind.
+    vergleich_wasser = comparable_ytd_summary(
+        df,
+        latest_year,
+        previous_year,
+        "Wasser m³",
+        "Wasser",
+        "Wasserkosten (€)",
+    )
+
+    if vergleich_wasser["anzahl_monate"] == 0:
+        vergleich_wasser["bewertungshinweis"] = (
+            "Kein belastbarer Wasservergleich für das aktuelle Jahr. "
+            "Wasserwerte liegen typischerweise nur jährlich mit der Abrechnung vor."
+        )
+
     anomaly_rows = []
+
     for col, label, limit_pct in [
         ("Strombezug kWh", "Strom", 35),
         ("Fernwärmebezug (kWh)", "Fernwärme", 35),
-        ("Wasser m³", "Wasser", 35),
+        ("PV Produktion (kWh)", "PV-Produktion", 35),
     ]:
-        month_avg = df.groupby("Monat_Kurz", observed=True)[col].mean()
-        for _, row in monthly.iterrows():
+        available_months = available_months_for_metric(df, selected_year, col)
+
+        selected_df = df[
+            (df["Jahr"] == selected_year)
+            & (df["Monat_Kurz"].astype(str).isin(available_months))
+        ]
+
+        month_avg = (
+            df[
+                (df[col].notna())
+                & (df[col] > 0)
+                & (df["Jahr"] < selected_year)
+            ]
+            .groupby("Monat_Kurz", observed=True)[col]
+            .mean()
+        )
+
+        for _, row in selected_df.iterrows():
             month = row["Monat_Kurz"]
             value = row[col]
             avg = month_avg.get(month)
+
             if pd.notna(value) and pd.notna(avg) and avg > 0:
                 deviation = (value - avg) / avg * 100
+
                 if abs(deviation) >= limit_pct:
                     anomaly_rows.append(
                         {
@@ -265,65 +393,54 @@ def build_ai_payload(df: pd.DataFrame, yearly_all: pd.DataFrame, selected_year: 
                             "monat": str(month),
                             "bereich": label,
                             "wert": round(float(value), 2),
-                            "durchschnitt": round(float(avg), 2),
+                            "historischer_monatsdurchschnitt": round(float(avg), 2),
                             "abweichung_prozent": round(float(deviation), 1),
                         }
                     )
+
     payload = {
-        "hinweis": "Dies sind aggregierte Kennzahlen, keine Rohdaten aus dem Google Sheet.",
+        "hinweis": (
+            "Dies sind aggregierte Kennzahlen, keine Rohdaten. "
+            "Das aktuelle Jahr darf nicht mit vollständigen Vorjahren verglichen werden. "
+            "Vergleiche sind nur für gleiche verfügbare Monate zulässig."
+        ),
+        "datenverfuegbarkeit": {
+            "strom": "Wird manuell abgelesen und ist zeitnah verfügbar. Nur vorhandene Monatswerte auswerten.",
+            "pv": "Wird manuell abgelesen und ist zeitnah verfügbar. Nur vorhandene Monatswerte auswerten.",
+            "fernwaerme": "Liegt typischerweise mit ca. 1,5 Monaten Versatz vor. Fehlende spätere Monate nicht als Verbrauchsrückgang interpretieren.",
+            "wasser": "Liegt typischerweise nur jährlich mit der Abrechnung vor. Fehlende Werte im laufenden Jahr nicht als Nullverbrauch interpretieren.",
+        },
         "latest_year": latest_year,
         "selected_analysis_year": selected_year,
-        "latest_year_summary": {
+        "latest_year_raw_partial_totals": {
+            "warnung": "Diese Werte können unvollständig sein, wenn das Jahr noch läuft.",
             "strom_kwh": round(float(latest["Strombezug kWh"]), 1),
             "stromkosten_eur": round(float(latest["Stromkosten (€)"]), 2),
-            "strompreis_eur_kwh": None
-            if pd.isna(latest["€/kWh_ST"])
-            else round(float(latest["€/kWh_ST"]), 4),
             "fernwaerme_kwh": round(float(latest["Fernwärmebezug (kWh)"]), 1),
             "fernwaermekosten_eur": round(float(latest["Fernwärmekosten (€)"]), 2),
-            "fernwaermepreis_eur_kwh": None
-            if pd.isna(latest["€/kWh_FW"])
-            else round(float(latest["€/kWh_FW"]), 4),
             "wasser_m3": round(float(latest["Wasser m³"]), 1),
             "wasserkosten_eur": round(float(latest["Wasserkosten (€)"]), 2),
-            "wasserpreis_eur_m3": None
-            if pd.isna(latest["€/m³_W"])
-            else round(float(latest["€/m³_W"]), 4),
             "pv_produktion_kwh": round(float(latest["PV Produktion (kWh)"]), 1),
             "pv_eigenverbrauch_kwh": round(float(latest["Eigenverbrauch"]), 1),
             "pv_einspeisung_kwh": round(float(latest["Einspeisung"]), 1),
         },
-        "change_vs_previous_year_pct": {},
-        "last_6_years": yearly_records.replace({np.nan: None}).round(4).to_dict("records"),
-        "anomalies_selected_year": anomaly_rows[:15],
+        "vergleichbare_zeitraeume": {
+            "strom": vergleich_strom,
+            "fernwaerme": vergleich_fernwaerme,
+            "pv_produktion": vergleich_pv_produktion,
+            "pv_eigenverbrauch": vergleich_pv_eigenverbrauch,
+            "wasser": vergleich_wasser,
+        },
+        "auffaelligkeiten": anomaly_rows[:15],
+        "analyse_regeln": [
+            "Keine Aussagen wie 'Jahresverbrauch sank' treffen, wenn das aktuelle Jahr unvollständig ist.",
+            "Nur gleiche Monate miteinander vergleichen.",
+            "Fehlende Monatswerte nicht als Nullverbrauch interpretieren.",
+            "Wasser im laufenden Jahr nur kommentieren, wenn aktuelle Abrechnungswerte vorhanden sind.",
+            "Fernwärme wegen Zeitversatz vorsichtig interpretieren.",
+        ],
     }
-    if previous is not None:
-        payload["change_vs_previous_year_pct"] = {
-            "strom_kwh": pct_change(
-                latest["Strombezug kWh"],
-                previous["Strombezug kWh"],
-            ),
-            "stromkosten": pct_change(
-                latest["Stromkosten (€)"],
-                previous["Stromkosten (€)"],
-            ),
-            "fernwaerme_kwh": pct_change(
-                latest["Fernwärmebezug (kWh)"],
-                previous["Fernwärmebezug (kWh)"],
-            ),
-            "fernwaermekosten": pct_change(
-                latest["Fernwärmekosten (€)"],
-                previous["Fernwärmekosten (€)"],
-            ),
-            "wasser_m3": pct_change(
-                latest["Wasser m³"],
-                previous["Wasser m³"],
-            ),
-            "wasserkosten": pct_change(
-                latest["Wasserkosten (€)"],
-                previous["Wasserkosten (€)"],
-            ),
-        }
+
     return payload
 def run_ai_analysis(payload: dict, user_question: str | None = None) -> str:
     if "OPENAI_API_KEY" not in st.secrets:
