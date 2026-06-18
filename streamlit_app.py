@@ -574,15 +574,15 @@ try:
     df = load_data()
     yearly_all = build_yearly_data(df)
     avg_df = build_avg_data(df)
-   st.markdown(
-    """
-    <div class="hero-card">
-        <h1>G3 Energie Dashboard</h1>
-        <p>Verbrauch, Kosten, PV-Bilanz und KI-Analyse auf Basis deiner Energiedaten.</p>
-    </div>
-    """,
-    unsafe_allow_html=True,
-)
+    st.markdown(
+        """
+        <div class="hero-card">
+            <h1>G3 Energie Dashboard</h1>
+            <p>Verbrauch, Kosten, PV-Bilanz und KI-Analyse auf Basis deiner Energiedaten.</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
     if df.empty:
         st.warning("Keine gültigen Daten gefunden.")
         st.stop()
