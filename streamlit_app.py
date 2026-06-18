@@ -29,6 +29,9 @@ st.markdown(
     [data-testid="stSidebar"] * {
         color: #f8fafc;
     }
+    div[data-baseweb="select"] {
+    color: #0f172a !important;
+}
 
     .hero-card {
         padding: 1.5rem 1.75rem;
