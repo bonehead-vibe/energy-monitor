@@ -16,11 +16,89 @@ st.set_page_config(
 st.markdown(
     """
     <style>
-    .main { padding-top: 1rem; }
-    .stMetric {
-        background-color: rgba(28, 131, 225, 0.1);
-        padding: 10px;
-        border-radius: 10px;
+    .block-container {
+        padding-top: 1.5rem;
+        padding-bottom: 2rem;
+        max-width: 1200px;
+    }
+
+    [data-testid="stSidebar"] {
+        background: #0f172a;
+    }
+
+    [data-testid="stSidebar"] * {
+        color: #f8fafc;
+    }
+
+    .hero-card {
+        padding: 1.5rem 1.75rem;
+        border-radius: 18px;
+        background: linear-gradient(135deg, #0f172a 0%, #1e293b 55%, #334155 100%);
+        color: white;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 10px 30px rgba(15, 23, 42, 0.18);
+    }
+
+    .hero-card h1 {
+        margin-bottom: 0.25rem;
+        font-size: 2rem;
+    }
+
+    .hero-card p {
+        margin: 0;
+        color: #cbd5e1;
+        font-size: 0.95rem;
+    }
+
+    div[data-testid="stMetric"] {
+        background: white;
+        border: 1px solid #e5e7eb;
+        padding: 1rem;
+        border-radius: 16px;
+        box-shadow: 0 4px 18px rgba(15, 23, 42, 0.06);
+    }
+
+    div[data-testid="stMetricLabel"] {
+        color: #64748b;
+        font-size: 0.85rem;
+    }
+
+    div[data-testid="stMetricValue"] {
+        color: #0f172a;
+        font-weight: 700;
+    }
+
+    div[data-testid="stTabs"] button {
+        font-weight: 600;
+    }
+
+    .section-card {
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 18px;
+        padding: 1rem 1.25rem;
+        margin-bottom: 1rem;
+        box-shadow: 0 4px 18px rgba(15, 23, 42, 0.05);
+    }
+
+    .data-note {
+        background: #f8fafc;
+        border-left: 4px solid #2563eb;
+        padding: 0.8rem 1rem;
+        border-radius: 12px;
+        color: #334155;
+        margin: 1rem 0;
+    }
+
+    @media (max-width: 768px) {
+        .block-container {
+            padding-left: 1rem;
+            padding-right: 1rem;
+        }
+
+        .hero-card h1 {
+            font-size: 1.5rem;
+        }
     }
     </style>
     """,
@@ -140,9 +218,23 @@ def safe_divide(numerator: pd.Series, denominator: pd.Series) -> pd.Series:
     return np.where(denominator > 0, numerator / denominator, np.nan)
 def apply_style(fig):
     fig.update_layout(
-        legend=dict(orientation="h", y=-0.35),
-        margin=dict(l=10, r=10, t=50, b=10),
+        template="plotly_white",
+        paper_bgcolor="white",
+        plot_bgcolor="white",
+        font=dict(size=13),
+        title=dict(font=dict(size=18), x=0.02),
+        legend=dict(
+            orientation="h",
+            yanchor="top",
+            y=-0.2,
+            xanchor="left",
+            x=0,
+        ),
+        margin=dict(l=20, r=20, t=60, b=40),
+        hovermode="x unified",
     )
+    fig.update_xaxes(showgrid=False)
+    fig.update_yaxes(gridcolor="#e5e7eb")
     return fig
 @st.cache_data(ttl=60)
 def load_data() -> pd.DataFrame:
@@ -482,7 +574,15 @@ try:
     df = load_data()
     yearly_all = build_yearly_data(df)
     avg_df = build_avg_data(df)
-    st.title("🏡 G3 Energie Dashboard")
+   st.markdown(
+    """
+    <div class="hero-card">
+        <h1>G3 Energie Dashboard</h1>
+        <p>Verbrauch, Kosten, PV-Bilanz und KI-Analyse auf Basis deiner Energiedaten.</p>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
     if df.empty:
         st.warning("Keine gültigen Daten gefunden.")
         st.stop()
